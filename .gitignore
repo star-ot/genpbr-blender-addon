@@ -29,6 +29,10 @@ desktop.ini
 *.temp
 genpbr_*.png
 
+# Release zips (generated files)
+genpbr_addon_v*.zip
+*.zip
+
 # Logs
 *.log
 

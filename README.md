@@ -13,10 +13,10 @@ A powerful Blender 3.6+ addon that generates high-quality PBR (Physically Based 
 
 ## Installation
 
-1. Download the addon folder (`genpbr_addon`)
+1. Download the addon folder (`genpbr_blender_addon`)
 2. Open Blender (3.6 or later)
 3. Go to `Edit > Preferences > Add-ons`
-4. Click `Install...` and select the `genpbr_addon` folder
+4. Click `Install...` and select the `genpbr_blender_addon` folder
 5. Enable the addon by checking the box next to "GenPBR Map Generator"
 
 ## Getting an API Key
@@ -132,7 +132,7 @@ Please visit [https://genpbr.com](https://genpbr.com) and check your account set
 
 ### File Structure
 ```
-genpbr_addon/
+genpbr_blender_addon/
 ├── __init__.py      # Main entry point and registration
 ├── preferences.py   # Addon preferences (API key storage)
 ├── properties.py    # Scene properties (UI state)
