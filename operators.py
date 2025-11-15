@@ -35,6 +35,7 @@ class PBRGenerateOperator(bpy.types.Operator):
     bl_idname = "pbr.generate_maps"
     bl_label = "Generate PBR Maps"
     bl_description = "Generate PBR maps from selected base texture using GenPBR API"
+    bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         props = context.scene.genpbr_props
@@ -257,6 +258,8 @@ class PBRGenerateOperator(bpy.types.Operator):
                 base_img = bpy.data.images.load(props.base_texture_path)
                 base_img.name = "Albedo"
                 base_img.colorspace_settings.name = 'sRGB'
+                # Pack image into blend file for undo safety
+                base_img.pack()
                 albedo_node = nodes.new('ShaderNodeTexImage')
                 albedo_node.image = base_img
                 albedo_node.label = "Albedo"
@@ -265,14 +268,93 @@ class PBRGenerateOperator(bpy.types.Operator):
             except Exception as e:
                 self.report({'WARNING'}, f"Failed to load base image as albedo: {e}")
 
+            # Track y position for node placement (200 units spacing)
             y = -200
+            
+            # Load AO map and connect it to multiply with base color
+            if "ao" in temp_files:
+                try:
+                    img = bpy.data.images.load(temp_files["ao"])
+                    img.name = "Ambient Occlusion"
+                    img.colorspace_settings.name = 'Non-Color'
+                    # Pack image into blend file for undo safety
+                    img.pack()
+                    
+                    ao_node = nodes.new('ShaderNodeTexImage')
+                    ao_node.image = img
+                    ao_node.label = "Ambient Occlusion"
+                    ao_node.location = (-400, y)
+                    
+                    # Create a MixRGB node to multiply AO with the base color
+                    mix_node = nodes.new(type='ShaderNodeMixRGB')
+                    mix_node.blend_type = 'MULTIPLY'
+                    mix_node.location = (-200, y)
+                    mix_node.inputs['Fac'].default_value = 1.0
+                    
+                    # Reconnect albedo through the mix node if albedo exists
+                    if albedo_node:
+                        # Remove existing albedo to BSDF link
+                        for link in list(links):
+                            if link.to_socket == bsdf_node.inputs['Base Color']:
+                                links.remove(link)
+                                break
+                        
+                        # Connect albedo and AO through mix node
+                        links.new(albedo_node.outputs['Color'], mix_node.inputs['Color1'])
+                        links.new(ao_node.outputs['Color'], mix_node.inputs['Color2'])
+                        links.new(mix_node.outputs['Color'], bsdf_node.inputs['Base Color'])
+                    else:
+                        # If no albedo, just connect AO directly (though this is unusual)
+                        links.new(ao_node.outputs['Color'], bsdf_node.inputs['Base Color'])
+                    
+                    y -= 200
+                except Exception as e:
+                    self.report({'WARNING'}, f"Failed to load AO map: {e}")
+            
+            # Load metallic map
+            if "metallic" in temp_files:
+                try:
+                    img = bpy.data.images.load(temp_files["metallic"])
+                    img.name = "Metallic"
+                    img.colorspace_settings.name = 'Non-Color'
+                    # Pack image into blend file for undo safety
+                    img.pack()
+                    
+                    node = nodes.new('ShaderNodeTexImage')
+                    node.image = img
+                    node.label = "Metallic"
+                    node.location = (-400, y)
+                    links.new(node.outputs['Color'], bsdf_node.inputs['Metallic'])
+                    y -= 200
+                except Exception as e:
+                    self.report({'WARNING'}, f"Failed to load metallic map: {e}")
+            
+            # Load roughness map
+            if "roughness" in temp_files:
+                try:
+                    img = bpy.data.images.load(temp_files["roughness"])
+                    img.name = "Roughness"
+                    img.colorspace_settings.name = 'Non-Color'
+                    # Pack image into blend file for undo safety
+                    img.pack()
+                    
+                    node = nodes.new('ShaderNodeTexImage')
+                    node.image = img
+                    node.label = "Roughness"
+                    node.location = (-400, y)
+                    links.new(node.outputs['Color'], bsdf_node.inputs['Roughness'])
+                    y -= 200
+                except Exception as e:
+                    self.report({'WARNING'}, f"Failed to load roughness map: {e}")
             
             # Load normal map
             if "normal" in temp_files:
                 try:
                     img = bpy.data.images.load(temp_files["normal"])
                     img.name = "Normal Map"
-                    img.colorspace_settings.name = 'sRGB'
+                    img.colorspace_settings.name = 'Non-Color'
+                    # Pack image into blend file for undo safety
+                    img.pack()
                     
                     node = nodes.new('ShaderNodeTexImage')
                     node.image = img
@@ -286,70 +368,6 @@ class PBRGenerateOperator(bpy.types.Operator):
                     y -= 200
                 except Exception as e:
                     self.report({'WARNING'}, f"Failed to load normal map: {e}")
-            
-            # Load roughness map
-            if "roughness" in temp_files:
-                try:
-                    img = bpy.data.images.load(temp_files["roughness"])
-                    img.name = "Roughness"
-                    img.colorspace_settings.name = 'Non-Color'
-                    
-                    node = nodes.new('ShaderNodeTexImage')
-                    node.image = img
-                    node.label = "Roughness"
-                    node.location = (-400, y)
-                    links.new(node.outputs['Color'], bsdf_node.inputs['Roughness'])
-                    y -= 200
-                except Exception as e:
-                    self.report({'WARNING'}, f"Failed to load roughness map: {e}")
-            
-            # Load metallic map
-            if "metallic" in temp_files:
-                try:
-                    img = bpy.data.images.load(temp_files["metallic"])
-                    img.name = "Metallic"
-                    img.colorspace_settings.name = 'Non-Color'
-                    
-                    node = nodes.new('ShaderNodeTexImage')
-                    node.image = img
-                    node.label = "Metallic"
-                    node.location = (-400, y)
-                    links.new(node.outputs['Color'], bsdf_node.inputs['Metallic'])
-                    y -= 200
-                except Exception as e:
-                    self.report({'WARNING'}, f"Failed to load metallic map: {e}")
-        
-            # Load AO map and connect it to multiply with base color
-            if "ao" in temp_files:
-                try:
-                    img = bpy.data.images.load(temp_files["ao"])
-                    img.name = "Ambient Occlusion"
-                    img.colorspace_settings.name = 'Non-Color'
-                    
-                    ao_node = nodes.new('ShaderNodeTexImage')
-                    ao_node.image = img
-                    ao_node.label = "Ambient Occlusion"
-                    ao_node.location = (-400, y)
-                    
-                    # Create a MixRGB node to multiply AO with the base color
-                    mix_node = nodes.new(type='ShaderNodeMixRGB')
-                    mix_node.blend_type = 'MULTIPLY'
-                    mix_node.location = (-200, y)
-                    mix_node.inputs['Fac'].default_value = 1.0
-                    
-                    # Reconnect albedo through the mix node
-                    if albedo_node:
-                        for link in list(links):
-                            if link.to_socket == bsdf_node.inputs['Base Color']:
-                                links.remove(link)
-                                break
-                        
-                        links.new(albedo_node.outputs['Color'], mix_node.inputs['Color1'])
-                        links.new(ao_node.outputs['Color'], mix_node.inputs['Color2'])
-                        links.new(mix_node.outputs['Color'], bsdf_node.inputs['Base Color'])
-                    y -= 200
-                except Exception as e:
-                    self.report({'WARNING'}, f"Failed to load AO map: {e}")
 
             wm.progress_update(100)
             self.report({'INFO'}, "PBR maps generated successfully!")
