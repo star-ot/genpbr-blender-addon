@@ -1,7 +1,7 @@
 bl_info = {
     "name": "GenPBR Map Generator",
     "author": "North Star Global LLC DBA GenPBR",
-    "version": (1, 0, 4),
+    "version": (1, 0, 5),
     "blender": (3, 6, 0),
     "location": "Shader Editor > Sidebar > GenPBR",
     "description": "Generate PBR maps from a base texture using GenPBR API",

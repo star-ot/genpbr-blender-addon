@@ -9,32 +9,32 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         default="",
         subtype='FILE_PATH'
     )
-    
+
     # Texture type toggles
     generate_normal: bpy.props.BoolProperty(
         name="Normal Map",
         description="Generate normal map for surface details",
         default=True
     )
-    
+
     generate_metallic: bpy.props.BoolProperty(
         name="Metallic Map",
         description="Generate metallic map for metal/non-metal areas",
         default=True
     )
-    
+
     generate_roughness: bpy.props.BoolProperty(
         name="Roughness Map",
         description="Generate roughness map for surface smoothness",
         default=True
     )
-    
+
     generate_ao: bpy.props.BoolProperty(
         name="Ambient Occlusion (AO)",
         description="Generate AO map for shadowed crevices",
         default=True
     )
-    
+
     # Intensity/strength sliders
     normal_strength: bpy.props.FloatProperty(
         name="Normal Strength",
@@ -45,7 +45,7 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         step=10,
         precision=1
     )
-    
+
     metallic_intensity: bpy.props.FloatProperty(
         name="Metallic Intensity",
         description="Intensity of metallic surface detection",
@@ -55,7 +55,7 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         step=1,
         precision=2
     )
-    
+
     roughness_intensity: bpy.props.FloatProperty(
         name="Roughness Intensity",
         description="Intensity of roughness variation",
@@ -65,7 +65,7 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         step=10,
         precision=1
     )
-    
+
     ao_intensity: bpy.props.FloatProperty(
         name="AO Intensity",
         description="Intensity of ambient occlusion shadows",
@@ -75,7 +75,7 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         step=10,
         precision=1
     )
-    
+
     ao_radius: bpy.props.FloatProperty(
         name="AO Radius",
         description="Radius for AO calculation (larger = wider shadows)",
@@ -86,3 +86,52 @@ class GenPBRProperties(bpy.types.PropertyGroup):
         precision=1
     )
 
+    # Usage stats (from API response)
+    usage_remaining_quota: bpy.props.IntProperty(
+        name="Remaining Quota",
+        description="Remaining API quota",
+        default=0
+    )
+
+    usage_tier: bpy.props.StringProperty(
+        name="Tier",
+        description="API tier (free, pro, etc.)",
+        default=""
+    )
+
+    usage_monthly_quota: bpy.props.IntProperty(
+        name="Monthly Quota",
+        description="Monthly API quota",
+        default=0
+    )
+
+    usage_rate_limit: bpy.props.IntProperty(
+        name="Rate Limit",
+        description="API rate limit",
+        default=0
+    )
+
+    is_free_regeneration: bpy.props.BoolProperty(
+        name="Free Regeneration",
+        description="Whether the last generation was free",
+        default=False
+    )
+
+    # Error tracking
+    last_error_code: bpy.props.IntProperty(
+        name="Last Error Code",
+        description="HTTP status code of the last error",
+        default=0
+    )
+
+    last_error_message: bpy.props.StringProperty(
+        name="Last Error Message",
+        description="Message from the last error",
+        default=""
+    )
+
+    last_error_type: bpy.props.StringProperty(
+        name="Last Error Type",
+        description="Type of the last error (401, 400, 429, 402, etc.)",
+        default=""
+    )

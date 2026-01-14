@@ -165,31 +165,70 @@ class PBRGenerateOperator(bpy.types.Operator):
                 response.raise_for_status()
 
             except requests.exceptions.HTTPError as e:
+                status_code = response.status_code
                 error_msg = f"API request failed: {e}"
+                error_type = ""
+                detailed_msg = ""
+
                 print(f"[GenPBR Debug] HTTP Error: {e}")
-                print(f"[GenPBR Debug] Response status code: {response.status_code}")
+                print(f"[GenPBR Debug] Response status code: {status_code}")
 
                 try:
                     error_data = response.json()
                     print(f"[GenPBR Debug] Full error response: {error_data}")
 
-                    # Build detailed error message
+                    # Extract error message from response
                     if "message" in error_data:
-                        error_msg = f"API error: {error_data['message']}"
+                        detailed_msg = error_data['message']
+                        error_msg = f"API error: {detailed_msg}"
                     if "error" in error_data:
-                        error_msg = f"{error_data.get('error', 'Unknown error')}: {error_data.get('message', '')}"
+                        detailed_msg = error_data.get('message', '')
+                        error_msg = f"{error_data.get('error', 'Unknown error')}: {detailed_msg}"
                     if "debug" in error_data:
                         print(f"[GenPBR Debug] Server debug info: {error_data['debug']}")
 
                 except Exception as json_error:
                     print(f"[GenPBR Debug] Failed to parse error JSON: {json_error}")
                     print(f"[GenPBR Debug] Raw response text: {response.text[:500]}")
+                    detailed_msg = response.text[:200] if hasattr(response, 'text') else str(e)
+
+                # Handle specific error codes with user-friendly messages
+                if status_code == 401:
+                    error_type = "401"
+                    error_msg = "Unauthorized: Invalid or missing API key"
+                    detailed_msg = "Please check your API key in Add-on Preferences (Edit > Preferences > Add-ons > GenPBR Map Generator)"
+                elif status_code == 400:
+                    error_type = "400"
+                    error_msg = "Bad Request: Invalid request body or missing required fields"
+                    if detailed_msg:
+                        error_msg = f"Bad Request: {detailed_msg}"
+                elif status_code == 429:
+                    error_type = "429"
+                    error_msg = "Rate Limit Exceeded: Too many requests"
+                    detailed_msg = "Please wait a moment before retrying. Check your rate limit in Usage Statistics."
+                elif status_code == 402:
+                    error_type = "402"
+                    error_msg = "Quota Exceeded: Monthly request limit reached"
+                    detailed_msg = "Your monthly quota has been exhausted. Please upgrade your plan or wait for the next billing cycle."
+                else:
+                    error_type = str(status_code)
+                    if not detailed_msg:
+                        detailed_msg = error_msg
+
+                # Store error info in properties for UI display
+                props.last_error_code = status_code
+                props.last_error_message = detailed_msg
+                props.last_error_type = error_type
 
                 self.report({'ERROR'}, error_msg)
                 wm.progress_end()
                 return {'CANCELLED'}
             except requests.exceptions.RequestException as e:
                 print(f"[GenPBR Debug] Request exception: {e}")
+                # Store error info for network errors
+                props.last_error_code = 0
+                props.last_error_message = f"Network error: {str(e)}"
+                props.last_error_type = "Network"
                 self.report({'ERROR'}, f"API request failed: {e}")
                 wm.progress_end()
                 return {'CANCELLED'}
@@ -197,6 +236,10 @@ class PBRGenerateOperator(bpy.types.Operator):
                 print(f"[GenPBR Debug] Unexpected error: {type(e).__name__}: {e}")
                 import traceback
                 print(f"[GenPBR Debug] Traceback: {traceback.format_exc()}")
+                # Store error info for unexpected errors
+                props.last_error_code = 0
+                props.last_error_message = f"Unexpected error: {str(e)}"
+                props.last_error_type = "Unexpected"
                 self.report({'ERROR'}, f"API request failed: {e}")
                 wm.progress_end()
                 return {'CANCELLED'}
@@ -213,17 +256,40 @@ class PBRGenerateOperator(bpy.types.Operator):
                     error_msg = data.get("message", "Unknown error")
                     print(f"[GenPBR Debug] API returned error: {error_msg}")
                     print(f"[GenPBR Debug] Full response data: {data}")
+                    # Store error info
+                    props.last_error_code = 0
+                    props.last_error_message = error_msg
+                    props.last_error_type = "API Error"
                     self.report({'ERROR'}, f"API returned error: {error_msg}")
                     wm.progress_end()
                     return {'CANCELLED'}
 
+                # Clear previous errors on successful response
+                props.last_error_code = 0
+                props.last_error_message = ""
+                props.last_error_type = ""
+
                 textures = data.get("textures", {})
                 print(f"[GenPBR Debug] Received texture types: {list(textures.keys())}")
 
-                if "metadata" in data:
-                    print(f"[GenPBR Debug] Metadata: {data['metadata']}")
+                # Store usage stats from API response
                 if "usage" in data:
                     print(f"[GenPBR Debug] Usage info: {data['usage']}")
+                    usage = data["usage"]
+                    # Store usage stats
+                    props.usage_remaining_quota = usage.get("remainingQuota", 0)
+                    props.usage_tier = usage.get("tier", "")
+                    props.usage_monthly_quota = usage.get("monthlyQuota", 0)
+                    props.usage_rate_limit = usage.get("rateLimit", 0)
+                    # Store free regeneration flag from usage
+                    if "isFreeRegeneration" in usage:
+                        props.is_free_regeneration = usage["isFreeRegeneration"]
+
+                # Also check metadata for free regeneration (in case usage doesn't have it)
+                if "metadata" in data:
+                    print(f"[GenPBR Debug] Metadata: {data['metadata']}")
+                    if "isFreeRegeneration" in data["metadata"]:
+                        props.is_free_regeneration = data["metadata"]["isFreeRegeneration"]
 
             except Exception as e:
                 print(f"[GenPBR Debug] Failed to parse response: {e}")
@@ -395,6 +461,11 @@ class PBRGenerateOperator(bpy.types.Operator):
                     y -= 200
                 except Exception as e:
                     self.report({'WARNING'}, f"Failed to load normal map: {e}")
+
+            # Clear any previous errors on successful generation
+            props.last_error_code = 0
+            props.last_error_message = ""
+            props.last_error_type = ""
 
             wm.progress_update(100)
             self.report({'INFO'}, "PBR maps generated successfully!")
