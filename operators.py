@@ -122,6 +122,12 @@ class PBRGenerateOperator(bpy.types.Operator):
 
             wm.progress_update(10)
 
+            # Check if internet access is allowed (Blender ToS compliance)
+            if not bpy.app.online_access:
+                self.report({'ERROR'}, "Internet access is disabled. Please enable 'Allow Internet Access' in Blender preferences to use this addon.")
+                wm.progress_end()
+                return {'CANCELLED'}
+
             # Prepare API request
             url = "https://genpbr.com/api/v1/generate-texture"
 
@@ -209,7 +215,7 @@ class PBRGenerateOperator(bpy.types.Operator):
                 elif status_code == 402:
                     error_type = "402"
                     error_msg = "Quota Exceeded: Monthly request limit reached"
-                    detailed_msg = "Your monthly quota has been exhausted. Please upgrade your plan or wait for the next billing cycle."
+                    detailed_msg = "Your monthly quota has been exhausted. Please wait for the next billing cycle or visit genpbr.com for account options."
                 else:
                     error_type = str(status_code)
                     if not detailed_msg:

@@ -194,15 +194,14 @@ class PBRGeneratorPanel(bpy.types.Panel):
                         error_box.label(text="Solution:", icon='QUESTION')
                         error_box.label(text="• Wait a moment before retrying")
                         error_box.label(text="• Check your rate limit above")
-                        error_box.label(text="• Consider upgrading your plan")
                     elif error_type_display == "402":
                         error_box.label(text="402 Quota Exceeded", icon='CANCEL')
                         error_box.label(text="Monthly request limit reached", icon='INFO')
                         error_box.separator()
                         error_box.label(text="Solution:", icon='QUESTION')
-                        error_box.label(text="• Upgrade your plan for more quota")
                         error_box.label(text="• Wait for next billing cycle")
                         error_box.label(text="• Check usage stats above")
+                        error_box.label(text="• Visit genpbr.com for account options")
                     elif error_type_display == "Network":
                         error_box.label(text="Network Error", icon='WORLD')
                         if props.last_error_message:

@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "id": "genpbr_map_generator",
+  "version": "1.0.6",
+  "name": "GenPBR Map Generator",
+  "tagline": "Generate PBR maps from a base texture using GenPBR API",
+  "maintainer": "North Star Global LLC DBA GenPBR",
+  "type": "add-on",
+  "support_level": "community",
+  "permissions": {
+    "network": {
+      "required": true,
+      "reason": "Connects to GenPBR API service to generate PBR texture maps from base textures. The addon sends image data to the API and receives generated texture maps in response."
+    }
+  },
+  "copyright": [
+    {
+      "attribution": "North Star Global LLC DBA GenPBR",
+      "year": 2026
+    }
+  ],
+  "license": [
+    {
+      "name": "GPL-3.0-or-later",
+      "text": "GNU General Public License v3.0 or later"
+    }
+  ]
+}

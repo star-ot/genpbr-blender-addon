@@ -1,11 +1,15 @@
 bl_info = {
     "name": "GenPBR Map Generator",
     "author": "North Star Global LLC DBA GenPBR",
-    "version": (1, 0, 5),
+    "version": (1, 0, 6),
     "blender": (3, 6, 0),
     "location": "Shader Editor > Sidebar > GenPBR",
-    "description": "Generate PBR maps from a base texture using GenPBR API",
+    "description": "Generate PBR maps from a base texture using GenPBR API. Connects to GenPBR API service to generate normal, metallic, roughness, and ambient occlusion maps from a single base texture image.",
     "category": "Material",
+    "doc_url": "https://genpbr.com",
+    "tracker_url": "",
+    "support": "COMMUNITY",
+    "license": "GPL-3.0-or-later",
 }
 
 import bpy
